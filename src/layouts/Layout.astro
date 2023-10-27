@@ -1,0 +1,96 @@
+---
+import { ViewTransitions } from 'astro:transitions'
+import '@fontsource/montserrat'
+import './css-reset.css'
+import { Nav } from 'lib/components'
+
+type Props = {
+	title: string
+}
+
+const { title } = Astro.props
+
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content="Astro description" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+	</head>
+	<body transition:persist class="dark-theme">
+        <ViewTransitions fallback='swap' />
+        <Nav />
+        <div id="app">
+            <slot />
+        </div>
+	</body>
+</html>
+
+<style is:global>
+    body {
+        font-family: 'Montserrat', sans-serif;
+        --accent: #e6622d;
+        transition-property: color, background-color;
+        transition-duration: 0.2s;
+        transition-timing-function: ease-in-out;
+    }
+
+    #app {
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    span {
+        font-size: 100px;
+    }
+
+    .dark-theme {
+        color: #fff;
+		background: #13151a;
+    }
+
+    .light-theme {
+		background: #fff;
+        color: #13151a;
+    }
+</style>
+
+<script>
+    import { watchLanguageChange } from 'astro-static-dict/client'
+    import { Language, enUS, plPL } from 'lib/locale'
+    import { PersistorKey, ThemeMode } from 'lib/types'
+    import { themeUtils, localStorageUtils } from 'lib/utils'
+
+    watchLanguageChange({
+        cachedDictionaries: {
+            enUS,
+            plPL
+        },
+        defaultLanguage: Language.enUS
+    })
+
+    const onMount = () => {
+        if (themeUtils.getCurrentTheme() === ThemeMode.Dark) {
+            return
+        }
+
+        const cachedLanguage = localStorageUtils.get(PersistorKey.Locale)
+
+        if (cachedLanguage) {
+            window.changeLanguage(cachedLanguage)
+        }
+
+        document.body.classList.remove(ThemeMode.Dark)
+        document.body.classList.add(ThemeMode.Light)
+    }
+
+    onMount()
+    document.addEventListener('astro:after-swap', onMount)
+</script>

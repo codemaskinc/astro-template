@@ -1,0 +1,11 @@
+---
+import { dictionary } from 'lib/locale'
+import { Pathname } from 'lib/types'
+import Layout from '../layouts/Layout.astro'
+---
+
+<Layout title="A page">
+    <span transition:name={Pathname.A}>
+        {dictionary.components.nav[Pathname.A]}
+    </span>
+</Layout>

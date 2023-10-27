@@ -1,0 +1,114 @@
+---
+import { Pathname, ThemeMode } from 'lib/types'
+import { dictionary } from 'lib/locale'
+
+const currentPathname = Astro.url.pathname !== Pathname.Home
+    ? Astro.url.pathname.slice(0, -1)
+    : Pathname.Home
+const pathnames = Object.values(Pathname).filter(pathname => pathname !== currentPathname)
+
+const getTransitionName = (pathname: Pathname) => {
+    // transition:name property doesn't work when you pass "/"
+    if (pathname === Pathname.Home) {
+        return 'home'
+    }
+
+    return pathname
+}
+---
+
+<nav>
+    {pathnames.map(pathname => (
+        <a transition:name={getTransitionName(pathname)} href={pathname}>
+            {dictionary.components.nav[pathname]}
+        </a>
+    ))}
+    <div class="navigation-item current-language">
+        {dictionary.components.nav.currentLanguage}
+    </div>
+    <div class="navigation-item current-theme">
+        {dictionary.components.nav[ThemeMode.Dark]}
+    </div>
+</nav>
+
+<style>
+    nav {
+        width: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        display: flex;
+        padding: 32px;
+        gap: 32px;
+    }
+
+    .current-language {
+        margin-left: auto;
+    }
+
+    a, .navigation-item {
+        cursor: pointer;
+        transition: color 0.2s ease-in-out;
+        font-size: 32px;
+
+        &:hover {
+            color: var(--accent);
+        }
+    }
+</style>
+
+<script>
+    import { Language } from 'lib/locale'
+    import { PersistorKey, ThemeMode } from 'lib/types'
+    import { localStorageUtils, navigationUtils, themeUtils } from 'lib/utils'
+
+    const onMount = () => {
+        const languageEl = document.querySelector<HTMLDivElement>('.current-language')
+        const themeEl = document.querySelector<HTMLDivElement>('.current-theme')
+        const dictionary = window.cachedDictionaries[window.selectedLanguage]
+
+        if (!themeEl || !dictionary) {
+            return
+        }
+
+        const currentTheme = themeUtils.getCurrentTheme()
+        themeEl.innerText = dictionary.components.nav[currentTheme]
+
+        const changeLanguage = () => {
+            const newLanguage = window.selectedLanguage === Language.enUS
+                ? Language.plPL
+                : Language.enUS
+
+            window.changeLanguage(newLanguage)
+            localStorageUtils.set(PersistorKey.Locale, newLanguage)
+        }
+        
+        const changeTheme = () => {
+            if (!themeEl || !dictionary) {
+                return
+            }
+
+            const isDarkTheme = document.body.classList.contains(ThemeMode.Dark)
+            const addTheme = isDarkTheme ? ThemeMode.Light : ThemeMode.Dark
+            const removeTheme = isDarkTheme ? ThemeMode.Dark : ThemeMode.Light
+            const newTheme = isDarkTheme ? ThemeMode.Light : ThemeMode.Dark
+
+            document.body.classList.add(addTheme)
+            document.body.classList.remove(removeTheme)
+            themeEl.innerText = dictionary.components.nav[addTheme]
+            window.themeMode = newTheme
+            localStorageUtils.set(PersistorKey.ThemeMode, newTheme)
+        }
+
+        languageEl?.addEventListener('click', changeLanguage)
+        themeEl?.addEventListener('click', changeTheme)
+
+        navigationUtils.cleanup(() => {
+            languageEl?.removeEventListener('click', changeLanguage)
+            themeEl?.removeEventListener('click', changeTheme)
+        })
+    }
+
+    onMount()
+    document.addEventListener('astro:after-swap', onMount)
+</script>
